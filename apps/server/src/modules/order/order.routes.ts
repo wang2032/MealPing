@@ -12,6 +12,10 @@ import { broadcastNewOrder } from './order.events.js';
 
 const idParam = z.object({ id: z.coerce.number().int().positive() });
 const orderNoParam = z.object({ orderNo: z.string().min(1).max(40) });
+const byTableQuery = z.object({
+  tableNo: z.string().trim().min(1).max(20),
+  limit: z.coerce.number().int().positive().max(50).default(20),
+});
 
 /** Public router: /api/orders */
 export const publicOrderRouter = Router();
@@ -44,6 +48,16 @@ publicOrderRouter.get('/:orderNo', async (req, res, next) => {
     const { orderNo } = orderNoParam.parse(req.params);
     const order = await service.getOrderByNo(orderNo);
     res.json({ data: order });
+  } catch (e) {
+    next(e);
+  }
+});
+
+publicOrderRouter.get('/', async (req, res, next) => {
+  try {
+    const q = byTableQuery.parse(req.query);
+    const data = await service.listOrdersByTable(q.tableNo, q.limit);
+    res.json({ data });
   } catch (e) {
     next(e);
   }

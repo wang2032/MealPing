@@ -61,6 +61,23 @@ export async function getOrderByNo(orderNo: string) {
   return order;
 }
 
+/**
+ * Public lookup: recent orders for a given table number.
+ * Returns last 24h of orders so customers can track multiple rounds during one meal.
+ */
+export async function listOrdersByTable(tableNo: string, limit = 20) {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  return prisma.order.findMany({
+    where: {
+      tableNo,
+      createdAt: { gte: since },
+    },
+    orderBy: { id: 'desc' },
+    take: limit,
+    include: { items: true },
+  });
+}
+
 export async function getOrderById(id: number) {
   const order = await prisma.order.findUnique({
     where: { id },

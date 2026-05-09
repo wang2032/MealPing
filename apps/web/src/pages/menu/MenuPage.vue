@@ -6,9 +6,20 @@
           <div class="font-semibold text-lg">{{ shopName || 'MealPing' }}</div>
           <div class="text-xs text-gray-500">桌号：{{ cart.tableNo || '未指定' }}</div>
         </div>
-        <van-button v-if="!cart.tableNo" size="small" plain type="primary" @click="showTableDialog = true">
-          填写桌号
-        </van-button>
+        <div class="flex items-center gap-2">
+          <van-button
+            v-if="cart.tableNo"
+            size="small"
+            type="primary"
+            plain
+            @click="showMyOrders = true"
+          >
+            我的订单
+          </van-button>
+          <van-button v-if="!cart.tableNo" size="small" plain type="primary" @click="showTableDialog = true">
+            填写桌号
+          </van-button>
+        </div>
       </div>
     </header>
 
@@ -62,6 +73,8 @@
         <van-field v-model="tableInput" placeholder="例如 A1" />
       </div>
     </van-dialog>
+
+    <MyOrdersSheet v-model:show="showMyOrders" :table-no="cart.tableNo" />
   </div>
 </template>
 
@@ -76,6 +89,7 @@ import type { MenuCategoryWithItems, MenuItem } from '@mealping/shared';
 import MenuItemRow from '@/components/menu/MenuItemRow.vue';
 import CartBar from '@/components/menu/CartBar.vue';
 import CartSheet from '@/components/menu/CartSheet.vue';
+import MyOrdersSheet from '@/components/menu/MyOrdersSheet.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -86,6 +100,7 @@ const categories = ref<MenuCategoryWithItems[]>([]);
 const loading = ref(true);
 const showCart = ref(false);
 const showTableDialog = ref(false);
+const showMyOrders = ref(false);
 const tableInput = ref('');
 
 const allItems = computed<MenuItem[]>(() => categories.value.flatMap((c) => c.items));

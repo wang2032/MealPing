@@ -16,6 +16,14 @@ export async function fetchOrderByNo(orderNo: string): Promise<Order> {
   return res.data.data;
 }
 
+/** Public lookup: list recent orders for a given table (last 24h). */
+export async function fetchOrdersByTable(tableNo: string, limit = 20): Promise<Order[]> {
+  const res = await http.get<{ data: Order[] }>('/orders', {
+    params: { tableNo, limit },
+  });
+  return res.data.data;
+}
+
 export async function adminListOrders(params: {
   status?: OrderStatus;
   cursor?: number;
