@@ -95,7 +95,7 @@ import {
   type Order,
   type OrderStatus,
 } from '@mealping/shared';
-import { speak } from '@/utils/speech';
+import { speak, primeSpeech } from '@/utils/speech';
 
 const props = defineProps<{ show: boolean; tableNo: string }>();
 const emit = defineEmits<{ 'update:show': [value: boolean] }>();
@@ -186,6 +186,9 @@ watch(
   () => props.show,
   (v) => {
     if (v) {
+      // Opening the sheet is a user-gesture event; prime TTS here so later
+      // status-change announcements (which fire from the polling timer) work.
+      primeSpeech();
       reload(true);
       startPolling();
     } else {

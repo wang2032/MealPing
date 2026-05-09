@@ -207,7 +207,7 @@ function setupSSE() {
     reload();
     if (soundOn.value) {
       chime();
-      setTimeout(() => speak('叮咚，您有新订单'), 250);
+      setTimeout(() => speak('您有新订单'), 250);
     }
     ElMessage.success('收到新订单');
   });

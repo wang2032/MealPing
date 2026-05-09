@@ -63,6 +63,7 @@
       <!-- Footer hint -->
       <div v-if="order && polling" class="mt-4 text-center text-xs text-gray-400">
         正在自动跟踪状态 · 每 5 秒刷新
+        <button class="ml-2 underline" @click="testVoice">🔊 测试语音</button>
       </div>
 
       <!-- Actions -->
@@ -83,7 +84,7 @@ import {
   type Order,
   type OrderStatus,
 } from '@mealping/shared';
-import { speak } from '@/utils/speech';
+import { speak, primeSpeech } from '@/utils/speech';
 
 const route = useRoute();
 const router = useRouter();
@@ -203,8 +204,19 @@ function goMenu() {
   });
 }
 
+function testVoice() {
+  primeSpeech();
+  speak('语音测试，您的餐已做好');
+}
+
 onMounted(async () => {
   await refresh();
+  // Speak the welcome prompt once we have the order. Defer slightly so the
+  // page transition fully settles before TTS begins (Chrome can drop speech
+  // queued during a route change).
+  if (order.value) {
+    setTimeout(() => speak('下单成功，请耐心等候'), 300);
+  }
   if (order.value && !TERMINAL.includes(order.value.status as OrderStatus)) {
     startPolling();
   }

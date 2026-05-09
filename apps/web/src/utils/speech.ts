@@ -2,21 +2,26 @@
  * Tiny wrapper around Web Speech API (SpeechSynthesis) for short voice prompts.
  * - Works offline on modern browsers (Chrome, Edge, Safari, mobile WebView).
  * - Falls back silently when unsupported.
- * - Caches the best Chinese voice once available (voices load asynchronously).
+ *
+ * Voice picking strategy: prefer an explicit zh-* voice when available,
+ * but if the only voices are non-Chinese, leave `voice` unset and rely on
+ * `lang='zh-CN'` — browsers/OS will route to the system Chinese TTS engine
+ * (or fall back gracefully) instead of forcing English voice to read CJK.
  */
 
 let cachedVoice: SpeechSynthesisVoice | null = null;
+let voiceResolved = false;
 let voicesLoaded = false;
 
 function pickVoice(): SpeechSynthesisVoice | null {
-  if (cachedVoice) return cachedVoice;
+  if (voiceResolved) return cachedVoice;
   if (typeof speechSynthesis === 'undefined') return null;
   const voices = speechSynthesis.getVoices();
   if (voices.length === 0) return null;
-  // Prefer zh-CN, then any zh-*, then default.
   const zhCN = voices.find((v) => v.lang?.toLowerCase() === 'zh-cn');
   const zhAny = voices.find((v) => v.lang?.toLowerCase().startsWith('zh'));
-  cachedVoice = zhCN ?? zhAny ?? voices[0] ?? null;
+  cachedVoice = zhCN ?? zhAny ?? null;
+  voiceResolved = true;
   return cachedVoice;
 }
 
@@ -24,9 +29,9 @@ function ensureVoicesLoaded(): void {
   if (voicesLoaded) return;
   if (typeof speechSynthesis === 'undefined') return;
   voicesLoaded = true;
-  // Voices may load asynchronously
   speechSynthesis.getVoices();
   speechSynthesis.addEventListener?.('voiceschanged', () => {
+    voiceResolved = false;
     cachedVoice = null;
     pickVoice();
   });
@@ -39,7 +44,8 @@ export interface SpeakOptions {
   volume?: number;
   /** 0 ~ 2, default 1 */
   pitch?: number;
-  /** Cancel any in-flight utterance before this one. Default true. */
+  /** Cancel any in-flight utterance before this one. Default false — most
+   * prompts are short and queueing is friendlier than chopping the previous one. */
   interrupt?: boolean;
 }
 
@@ -54,7 +60,7 @@ export function speak(text: string, opts: SpeakOptions = {}): void {
   }
   ensureVoicesLoaded();
 
-  if (opts.interrupt !== false) {
+  if (opts.interrupt === true) {
     try {
       speechSynthesis.cancel();
     } catch {
