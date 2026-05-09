@@ -83,6 +83,7 @@ import {
   type Order,
   type OrderStatus,
 } from '@mealping/shared';
+import { speak } from '@/utils/speech';
 
 const route = useRoute();
 const router = useRouter();
@@ -181,8 +182,17 @@ function stopPolling() {
 
 watch(
   () => order.value?.status,
-  (s) => {
-    if (s && TERMINAL.includes(s)) stopPolling();
+  (next, prev) => {
+    if (next && prev && next !== prev) {
+      if (next === 'completed') {
+        speak('您的餐已做好，请前往取餐');
+      } else if (next === 'preparing') {
+        speak('您的订单已开始制作');
+      } else if (next === 'canceled') {
+        speak('您的订单已取消');
+      }
+    }
+    if (next && TERMINAL.includes(next)) stopPolling();
   },
 );
 

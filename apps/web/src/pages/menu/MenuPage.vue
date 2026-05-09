@@ -90,6 +90,7 @@ import MenuItemRow from '@/components/menu/MenuItemRow.vue';
 import CartBar from '@/components/menu/CartBar.vue';
 import CartSheet from '@/components/menu/CartSheet.vue';
 import MyOrdersSheet from '@/components/menu/MyOrdersSheet.vue';
+import { speak, primeSpeech } from '@/utils/speech';
 
 const route = useRoute();
 const router = useRouter();
@@ -170,6 +171,8 @@ async function submitOrder() {
     showTableDialog.value = true;
     return;
   }
+  // First user-gesture: prime TTS so the prompt below plays without delay.
+  primeSpeech();
   showLoadingToast({ message: '提交中...', forbidClick: true });
   try {
     const result = await createOrder({
@@ -180,6 +183,7 @@ async function submitOrder() {
     cart.clear();
     closeToast();
     showCart.value = false;
+    speak('下单成功，请耐心等候');
     await nextTick();
     router.push({ name: 'order-success', query: { orderNo: result.orderNo } });
   } catch (e) {

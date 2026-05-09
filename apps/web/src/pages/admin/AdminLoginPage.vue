@@ -21,6 +21,7 @@ import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { adminLogin } from '@/api/auth';
+import { primeSpeech } from '@/utils/speech';
 
 const password = ref('');
 const loading = ref(false);
@@ -29,6 +30,8 @@ const router = useRouter();
 
 async function onSubmit() {
   if (!password.value) return;
+  // First user gesture in this tab — unlock TTS so new-order voice plays later.
+  primeSpeech();
   loading.value = true;
   try {
     await adminLogin(password.value);

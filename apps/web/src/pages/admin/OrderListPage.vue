@@ -13,6 +13,9 @@
         <el-button size="small" @click="reload">刷新</el-button>
         <el-tag v-if="sseConnected" type="success" size="small">实时</el-tag>
         <el-tag v-else type="info" size="small">离线</el-tag>
+        <el-button size="small" :type="soundOn ? 'success' : 'info'" plain @click="toggleSound">
+          {{ soundOn ? '🔊 语音' : '🔇 静音' }}
+        </el-button>
       </div>
     </div>
 
@@ -98,6 +101,7 @@ import {
 } from '@mealping/shared';
 import { adminListOrders, adminUpdateOrderStatus, adminGetOrder } from '@/api/order';
 import { getAdminToken, apiBaseUrl } from '@/api/http';
+import { speak, primeSpeech, chime } from '@/utils/speech';
 
 const orders = ref<Order[]>([]);
 const loading = ref(false);
@@ -109,7 +113,17 @@ const detail = ref<Order | null>(null);
 const detailVisible = ref(false);
 
 const sseConnected = ref(false);
+const soundOn = ref(localStorage.getItem('mealping.admin.sound') !== 'off');
 let es: EventSource | null = null;
+
+function toggleSound() {
+  soundOn.value = !soundOn.value;
+  localStorage.setItem('mealping.admin.sound', soundOn.value ? 'on' : 'off');
+  if (soundOn.value) {
+    primeSpeech();
+    speak('语音播报已开启');
+  }
+}
 
 function statusLabel(s: string) {
   return ORDER_STATUS_LABEL[s as OrderStatus] ?? s;
@@ -191,33 +205,12 @@ function setupSSE() {
   es.onerror = () => (sseConnected.value = false);
   es.addEventListener('new-order', () => {
     reload();
-    playChime();
+    if (soundOn.value) {
+      chime();
+      setTimeout(() => speak('叮咚，您有新订单'), 250);
+    }
     ElMessage.success('收到新订单');
   });
-}
-
-function playChime() {
-  try {
-    const AudioCtx =
-      (window.AudioContext as typeof AudioContext) ||
-      ((window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext);
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.value = 880; // A5
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.45);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.5);
-    osc.onended = () => ctx.close();
-  } catch {
-    // ignore
-  }
 }
 
 onMounted(() => {

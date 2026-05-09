@@ -95,6 +95,7 @@ import {
   type Order,
   type OrderStatus,
 } from '@mealping/shared';
+import { speak } from '@/utils/speech';
 
 const props = defineProps<{ show: boolean; tableNo: string }>();
 const emit = defineEmits<{ 'update:show': [value: boolean] }>();
@@ -103,6 +104,9 @@ const orders = ref<Order[]>([]);
 const loading = ref(false);
 const lastUpdatedAt = ref<number>(0);
 let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+/** Track previously seen statuses by orderNo so we only announce real transitions. */
+const seenStatus = new Map<string, OrderStatus>();
 
 function statusLabel(s: string) {
   return ORDER_STATUS_LABEL[s as OrderStatus] ?? s;
@@ -135,10 +139,34 @@ async function reload(force = false) {
   if (loading.value && !force) return;
   loading.value = true;
   try {
-    orders.value = await fetchOrdersByTable(props.tableNo);
+    const next = await fetchOrdersByTable(props.tableNo);
+    announceTransitions(next);
+    orders.value = next;
     lastUpdatedAt.value = Date.now();
   } finally {
     loading.value = false;
+  }
+}
+
+function announceTransitions(next: Order[]) {
+  // First load: just record the snapshot, never announce.
+  if (seenStatus.size === 0 && next.length > 0) {
+    for (const o of next) seenStatus.set(o.orderNo, o.status as OrderStatus);
+    return;
+  }
+  for (const o of next) {
+    const prev = seenStatus.get(o.orderNo);
+    const cur = o.status as OrderStatus;
+    if (prev && prev !== cur) {
+      if (cur === 'completed') {
+        speak(`桌号 ${o.tableNo ?? ''} 的订单已做好，请取餐`);
+      } else if (cur === 'preparing') {
+        speak('您的订单已开始制作');
+      } else if (cur === 'canceled') {
+        speak('您的订单已取消');
+      }
+    }
+    seenStatus.set(o.orderNo, cur);
   }
 }
 
