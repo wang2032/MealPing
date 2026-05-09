@@ -1,0 +1,27 @@
+{
+  "name": "mealping",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Lightweight QR-code ordering system",
+  "scripts": {
+    "dev": "pnpm build:shared && pnpm -r --parallel --filter \"!@mealping/shared\" run dev",
+    "dev:server": "pnpm build:shared && pnpm --filter @mealping/server run dev",
+    "dev:web": "pnpm build:shared && pnpm --filter @mealping/web run dev",
+    "build:shared": "pnpm --filter @mealping/shared run build",
+    "build": "pnpm build:shared && pnpm --filter \"!@mealping/shared\" -r run build",
+    "build:server": "pnpm build:shared && pnpm --filter @mealping/server run build",
+    "build:web": "pnpm build:shared && pnpm --filter @mealping/web run build",
+    "db:migrate": "pnpm --filter @mealping/server run db:migrate",
+    "db:seed": "pnpm --filter @mealping/server run db:seed",
+    "db:studio": "pnpm --filter @mealping/server run db:studio",
+    "lint": "pnpm -r run lint"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

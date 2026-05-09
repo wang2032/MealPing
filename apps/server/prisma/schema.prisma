@@ -1,0 +1,95 @@
+// Prisma schema for MealPing
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String
+  sortOrder Int      @default(0) @map("sort_order")
+  status    String   @default("active") // active | inactive
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  items MenuItem[]
+
+  @@map("categories")
+}
+
+model MenuItem {
+  id          Int      @id @default(autoincrement())
+  categoryId  Int      @map("category_id")
+  name        String
+  description String?
+  price       Int // cents
+  imageUrl    String?  @map("image_url")
+  status      String   @default("active") // active | inactive
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  category   Category    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  orderItems OrderItem[]
+
+  @@index([categoryId])
+  @@index([status])
+  @@map("menu_items")
+}
+
+model Order {
+  id           Int      @id @default(autoincrement())
+  orderNo      String   @unique @map("order_no")
+  tableNo      String?  @map("table_no")
+  remark       String?
+  totalAmount  Int      @map("total_amount") // cents
+  status       String   @default("pending") // pending | preparing | completed | canceled
+  notifyStatus String   @default("pending") @map("notify_status") // pending | sent | failed | disabled
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  items        OrderItem[]
+  notifyLogs   NotifyLog[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id         Int    @id @default(autoincrement())
+  orderId    Int    @map("order_id")
+  menuItemId Int    @map("menu_item_id")
+  name       String // snapshot of menu item name
+  unitPrice  Int    @map("unit_price") // cents snapshot
+  quantity   Int
+  subtotal   Int // cents
+
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model NotifyLog {
+  id        Int      @id @default(autoincrement())
+  orderId   Int      @map("order_id")
+  channel   String // wechat_test_account | ...
+  status    String // sent | failed
+  request   String?  @db.Text
+  response  String?  @db.Text
+  errorMsg  String?  @map("error_msg") @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("notify_logs")
+}

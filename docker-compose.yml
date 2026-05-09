@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mealping-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mealping
+      POSTGRES_PASSWORD: mealping
+      POSTGRES_DB: mealping
+    ports:
+      - "5432:5432"
+    volumes:
+      - mealping-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mealping -d mealping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    container_name: mealping-server
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      DATABASE_URL: postgresql://mealping:mealping@postgres:5432/mealping?schema=public
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      JWT_SECRET: ${JWT_SECRET:-please-change-me}
+      JWT_EXPIRES_IN: 7d
+      SHOP_NAME: ${SHOP_NAME:-MealPing 小馆}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost}
+      NOTIFY_CHANNEL: ${NOTIFY_CHANNEL:-disabled}
+      WECHAT_APP_ID: ${WECHAT_APP_ID:-}
+      WECHAT_APP_SECRET: ${WECHAT_APP_SECRET:-}
+      WECHAT_TEMPLATE_ID: ${WECHAT_TEMPLATE_ID:-}
+      WECHAT_ADMIN_OPENID: ${WECHAT_ADMIN_OPENID:-}
+    ports:
+      - "3000:3000"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: mealping-web
+    restart: unless-stopped
+    depends_on:
+      - server
+    ports:
+      - "8080:80"
+
+volumes:
+  mealping-pgdata:
